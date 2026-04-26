@@ -1,10 +1,23 @@
 {
-  "name": "@oh-my-trace/mcp",
+  "name": "oh-my-trace-mcp",
   "version": "0.1.0",
   "description": "MCP server package for oh-my-trace.",
   "type": "module",
+  "bin": {
+    "oh-my-trace-mcp": "./bin/oh-my-trace-mcp.js"
+  },
   "dependencies": {
     "@oh-my-trace/core": "0.1.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
   },
   "exports": {
     ".": "./src/server.js"

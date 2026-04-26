@@ -9,16 +9,17 @@
   "files": [
     "bin",
     "src",
+    "scripts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test test/*.test.js",
-    "smoke": "node bin/omt.js doctor --home ./tmp/omt-smoke-home"
+    "smoke": "node bin/omt.js doctor --home ./tmp/omt-smoke-home",
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
-    "@oh-my-trace/core": "0.1.0",
-    "@oh-my-trace/mcp": "0.1.0"
+    "@oh-my-trace/core": "0.1.0"
   },
   "engines": {
     "node": ">=20"

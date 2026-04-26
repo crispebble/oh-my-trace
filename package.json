@@ -10,7 +10,9 @@
   "scripts": {
     "test": "node --test packages/cli/test/*.test.js",
     "pack:cli:dry-run": "npm pack --workspace oh-my-trace --dry-run",
-    "pack:cli": "npm pack --workspace oh-my-trace"
+    "pack:cli": "npm pack --workspace oh-my-trace",
+    "pack:mcp:dry-run": "npm pack --workspace oh-my-trace-mcp --dry-run",
+    "pack:mcp": "npm pack --workspace oh-my-trace-mcp"
   },
   "engines": {
     "node": ">=20"

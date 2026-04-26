@@ -7,6 +7,8 @@ import test from 'node:test';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const bin = path.join(root, 'bin', 'omt.js');
+const workspaceRoot = path.resolve(root, '..', '..');
+const mcpBin = path.join(workspaceRoot, 'packages', 'mcp', 'bin', 'oh-my-trace-mcp.js');
 
 async function initFixtureHome() {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
@@ -79,6 +81,28 @@ test('ingest, query, and export fixture data', async () => {
   assert.equal(exported.status, 0, exported.stderr);
   const exportedJson = JSON.parse(exported.stdout);
   await fs.access(exportedJson.filePath);
+});
+
+test('help and agents expose supported agents', async () => {
+  const help = spawnSync(process.execPath, [bin, '--help'], { encoding: 'utf8' });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /Supported agents:/);
+  assert.match(help.stdout, /codex\s+supported/);
+  assert.match(help.stdout, /copilot-cli\s+supported/);
+  assert.match(help.stdout, /cursor\s+experimental/);
+
+  const agents = spawnSync(process.execPath, [bin, 'agents', '--format', 'json'], { encoding: 'utf8' });
+  assert.equal(agents.status, 0, agents.stderr);
+  const payload = JSON.parse(agents.stdout);
+  assert.ok(payload.some((agent) => agent.id === 'codex' && agent.status === 'supported'));
+  assert.ok(payload.some((agent) => agent.id === 'cursor' && agent.status === 'experimental'));
+});
+
+test('mcp command prints separate package installation guidance', async () => {
+  const result = spawnSync(process.execPath, [bin, 'mcp'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /npm install -g oh-my-trace-mcp/);
+  assert.match(result.stdout, /"command": "oh-my-trace-mcp"/);
 });
 
 test('query supports desc default, asc order, and timestamp range filters', async () => {
@@ -176,12 +200,13 @@ test('doctor reports sqlite and source roots', async () => {
   assert.ok(payload.sources.some((source) => source.id === 'codex'));
 });
 
-test('mcp lists tools over stdio json-rpc', async () => {
+test('mcp package bin lists tools over stdio json-rpc', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
   spawnSync(process.execPath, [bin, 'init', '--home', home], { encoding: 'utf8' });
-  const child = spawnSync(process.execPath, [bin, 'mcp', '--home', home], {
+  const child = spawnSync(process.execPath, [mcpBin], {
     input: `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })}\n${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })}\n`,
-    encoding: 'utf8'
+    encoding: 'utf8',
+    env: { ...process.env, OMT_HOME: home }
   });
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));

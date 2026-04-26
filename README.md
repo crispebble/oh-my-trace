@@ -10,7 +10,7 @@ It stores local AI tool history in a SQLite database and exports AI-friendly con
 packages/
   cli/   npm-distributed CLI package (`oh-my-trace`, command `omt`)
   core/  shared local storage, adapters, redaction, and export logic
-  mcp/   MCP stdio server implementation
+  mcp/   npm-distributed MCP package (`oh-my-trace-mcp`, command `oh-my-trace-mcp`)
 docs/    research and planning notes
 ```
 
@@ -22,7 +22,7 @@ omt doctor
 omt ingest --since 2026-04-26
 omt query --source codex --limit 20 --order desc --format md
 omt export --since 2026-04-26 --format context-pack
-omt mcp
+omt agents
 ```
 
 Default home:
@@ -38,6 +38,7 @@ Legacy home `~/.oh-my-trace` is not migrated or modified automatically.
 ```bash
 npm test
 npm run pack:cli:dry-run
+npm run pack:mcp:dry-run
 ```
 
 Remote:

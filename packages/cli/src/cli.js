@@ -4,8 +4,8 @@ import { ensureHome, loadConfig } from '@oh-my-trace/core/core/config.js';
 import { homePaths, legacyHomeDir, resolveHome } from '@oh-my-trace/core/core/paths.js';
 import { initDb, listSessions, persistNormalized, queryEvents, startIngestRun, finishIngestRun, status, upsertSources } from '@oh-my-trace/core/core/storage.js';
 import { selectedAdapters } from '@oh-my-trace/core/adapters/index.js';
+import { formatAgentsText, SUPPORTED_AGENTS, supportedAgentIds } from '@oh-my-trace/core/agents.js';
 import { exportContextPack, renderEvents } from '@oh-my-trace/core/exporters/context-pack.js';
-import { runMcpServer } from '@oh-my-trace/mcp';
 
 export async function runCli(argv) {
   const { command, options, rest } = parseArgs(argv);
@@ -13,6 +13,20 @@ export async function runCli(argv) {
 
   if (!command || options.help || command === 'help') {
     printHelp();
+    return;
+  }
+
+  if (command === 'agents') {
+    if ((options.format || 'text') === 'json') {
+      console.log(JSON.stringify(SUPPORTED_AGENTS, null, 2));
+    } else {
+      console.log(formatAgentsText());
+    }
+    return;
+  }
+
+  if (command === 'mcp') {
+    printMcpInstallHelp();
     return;
   }
 
@@ -73,11 +87,6 @@ export async function runCli(argv) {
     return;
   }
 
-  if (command === 'mcp') {
-    await runMcpServer({ homeDir, config });
-    return;
-  }
-
   throw new Error(`Unknown command: ${command}`);
 }
 
@@ -117,6 +126,7 @@ async function doctor(homeDir, config) {
       note: legacyHomeExists ? 'Legacy home exists; it is not migrated or modified automatically.' : null
     },
     sqlite: sqlite.status === 0 ? sqlite.stdout.trim() : 'missing',
+    supportedAgents: SUPPORTED_AGENTS,
     sources: sourceRows
   }, null, 2));
 }
@@ -175,7 +185,8 @@ function printHelp() {
 Usage:
   omt init [--home <path>]
   omt doctor [--home <path>]
-  omt ingest [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--source codex,claude,gemini,copilot-cli]
+  omt agents [--format json]
+  omt ingest [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--source ${supportedAgentIds().join(',')}]
   omt status [--home <path>]
   omt query [--since ...] [--until ...] [--source ...] [--project ...] [--text ...] [--order asc|desc] [--format json|md]
   omt query --source codex --limit 20 --order desc --format md
@@ -187,5 +198,32 @@ Usage:
 Defaults:
   home: ~/.omt
   query order: desc
+
+${formatAgentsText()}
+
+MCP:
+  Install the MCP server separately:
+    npm install -g oh-my-trace-mcp
+    oh-my-trace-mcp
+`);
+}
+
+function printMcpInstallHelp() {
+  console.log(`oh-my-trace MCP server is distributed separately.
+
+Install:
+  npm install -g oh-my-trace-mcp
+
+Run:
+  oh-my-trace-mcp
+
+Generic MCP client config:
+{
+  "mcpServers": {
+    "oh-my-trace": {
+      "command": "oh-my-trace-mcp"
+    }
+  }
+}
 `);
 }

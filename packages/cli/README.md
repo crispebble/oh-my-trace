@@ -1,6 +1,6 @@
 # oh-my-trace
 
-`oh-my-trace` (`omt`) collects local AI-agent history into a local SQLite store and exports AI-friendly context packs.
+`oh-my-trace` installs the `omt` CLI. It collects local AI-agent history into a local SQLite store and exports AI-friendly context packs.
 
 It does not generate retrospectives or summaries. Its job is to make local agent history safely searchable and readable by other AI tools.
 
@@ -31,6 +31,30 @@ omt session <session-id> --format json
 omt export --since 2026-04-01 --format context-pack
 omt mcp
 ```
+
+`omt mcp` prints installation guidance for the separate MCP package. Install the server with:
+
+```bash
+npm install -g oh-my-trace-mcp
+```
+
+## Supported Agents
+
+Supported by default:
+
+- `codex`
+- `claude`
+- `gemini`
+- `copilot-cli`
+
+Experimental and disabled by default:
+
+- `copilot-vscode`
+- `copilot-jetbrains`
+- `cursor`
+- `gemini-antigravity`
+
+Use `omt agents` or `omt --help` to view this list from the installed CLI.
 
 `omt query` defaults to newest-first ordering. Use `--order asc` when you need oldest-first output.
 
