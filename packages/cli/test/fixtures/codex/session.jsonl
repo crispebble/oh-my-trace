@@ -1,0 +1,4 @@
+{"type":"session_meta","timestamp":"2026-04-26T00:00:00.000Z","payload":{"id":"codex-session-1","cwd":"/tmp/project"}}
+{"type":"response_item","timestamp":"2026-04-26T00:01:00.000Z","payload":{"item":{"type":"message","role":"user","content":[{"type":"input_text","text":"hello codex sk-abcdefghijklmnopqrstuvwxyz"}]}}}
+{"type":"response_item","timestamp":"2026-04-26T00:02:00.000Z","payload":{"item":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"hello user"}]}}}
+{"type":"response_item","timestamp":"2026-04-26T00:03:00.000Z","payload":{"item":{"type":"function_call","name":"shell","call_id":"tool-1"}}}

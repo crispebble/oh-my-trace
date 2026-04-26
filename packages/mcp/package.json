@@ -1,0 +1,16 @@
+{
+  "name": "@oh-my-trace/mcp",
+  "version": "0.1.0",
+  "description": "MCP server package for oh-my-trace.",
+  "type": "module",
+  "dependencies": {
+    "@oh-my-trace/core": "0.1.0"
+  },
+  "exports": {
+    ".": "./src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

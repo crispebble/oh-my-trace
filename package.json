@@ -1,0 +1,19 @@
+{
+  "name": "oh-my-trace-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace for oh-my-trace CLI, MCP, and shared core packages.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test packages/cli/test/*.test.js",
+    "pack:cli:dry-run": "npm pack --workspace oh-my-trace --dry-run",
+    "pack:cli": "npm pack --workspace oh-my-trace"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

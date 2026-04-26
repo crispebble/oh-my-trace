@@ -1,0 +1,37 @@
+{
+  "name": "oh-my-trace",
+  "version": "0.1.0",
+  "description": "CLI package for local AI agent history collection and AI-friendly export.",
+  "type": "module",
+  "bin": {
+    "omt": "./bin/omt.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "smoke": "node bin/omt.js doctor --home ./tmp/omt-smoke-home"
+  },
+  "dependencies": {
+    "@oh-my-trace/core": "0.1.0",
+    "@oh-my-trace/mcp": "0.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "trace",
+    "mcp",
+    "codex",
+    "claude",
+    "gemini",
+    "copilot"
+  ],
+  "license": "MIT"
+}
