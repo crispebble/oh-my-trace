@@ -1,10 +1,10 @@
 {
   "name": "@oh-my-trace/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI package for local AI agent history collection and AI-friendly export.",
   "type": "module",
   "bin": {
-    "omt": "./bin/omt.js"
+    "omt": "bin/omt.js"
   },
   "files": [
     "bin",
@@ -19,7 +19,7 @@
     "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
-    "@oh-my-trace/core": "0.1.0"
+    "@oh-my-trace/core": "0.1.1"
   },
   "engines": {
     "node": ">=20"

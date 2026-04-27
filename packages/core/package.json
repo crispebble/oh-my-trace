@@ -1,6 +1,6 @@
 {
   "name": "@oh-my-trace/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared storage, adapters, redaction, and export core for oh-my-trace.",
   "type": "module",
   "exports": {

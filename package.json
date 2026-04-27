@@ -14,7 +14,10 @@
     "pack:cli:dry-run": "npm pack --workspace @oh-my-trace/cli --dry-run",
     "pack:cli": "npm pack --workspace @oh-my-trace/cli",
     "pack:mcp:dry-run": "npm pack --workspace @oh-my-trace/mcp --dry-run",
-    "pack:mcp": "npm pack --workspace @oh-my-trace/mcp"
+    "pack:mcp": "npm pack --workspace @oh-my-trace/mcp",
+    "publish:core": "npm publish --workspace @oh-my-trace/core --access public",
+    "publish:cli": "npm publish --workspace @oh-my-trace/cli --access public",
+    "publish:mcp": "npm publish --workspace @oh-my-trace/mcp --access public"
   },
   "engines": {
     "node": ">=20"

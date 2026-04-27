@@ -4,10 +4,10 @@
   "description": "MCP server package for oh-my-trace.",
   "type": "module",
   "bin": {
-    "oh-my-trace-mcp": "./bin/oh-my-trace-mcp.js"
+    "oh-my-trace-mcp": "bin/oh-my-trace-mcp.js"
   },
   "dependencies": {
-    "@oh-my-trace/core": "0.1.0"
+    "@oh-my-trace/core": "0.1.1"
   },
   "files": [
     "bin",
