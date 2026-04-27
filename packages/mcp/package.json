@@ -1,5 +1,5 @@
 {
-  "name": "oh-my-trace-mcp",
+  "name": "@oh-my-trace/mcp",
   "version": "0.1.1",
   "description": "MCP server package for oh-my-trace.",
   "type": "module",

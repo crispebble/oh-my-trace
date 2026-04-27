@@ -101,7 +101,7 @@ test('help and agents expose supported agents', async () => {
 test('mcp command prints separate package installation guidance', async () => {
   const result = spawnSync(process.execPath, [bin, 'mcp'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /npm install -g oh-my-trace-mcp/);
+  assert.match(result.stdout, /npm install -g @oh-my-trace\/mcp/);
   assert.match(result.stdout, /"command": "oh-my-trace-mcp"/);
 });
 

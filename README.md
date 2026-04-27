@@ -8,9 +8,9 @@ It stores local AI tool history in a SQLite database and exports AI-friendly con
 
 ```text
 packages/
-  cli/   npm-distributed CLI package (`oh-my-trace`, command `omt`)
+  cli/   npm-distributed CLI package (`@oh-my-trace/cli`, command `omt`)
   core/  shared local storage, adapters, redaction, and export logic
-  mcp/   npm-distributed MCP package (`oh-my-trace-mcp`, command `oh-my-trace-mcp`)
+  mcp/   npm-distributed MCP package (`@oh-my-trace/mcp`, command `oh-my-trace-mcp`)
 docs/    research and planning notes
 ```
 

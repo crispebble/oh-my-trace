@@ -1,5 +1,5 @@
 {
-  "name": "oh-my-trace",
+  "name": "@oh-my-trace/cli",
   "version": "0.1.0",
   "description": "CLI package for local AI agent history collection and AI-friendly export.",
   "type": "module",

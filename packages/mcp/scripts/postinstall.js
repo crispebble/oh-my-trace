@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-console.log(`oh-my-trace-mcp installed.
+console.log(`@oh-my-trace/mcp installed.
 
 Run:
   oh-my-trace-mcp

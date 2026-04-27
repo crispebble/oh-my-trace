@@ -7,7 +7,7 @@ It does not generate retrospectives or summaries. Its job is to make local agent
 ## Install
 
 ```bash
-npm install -g oh-my-trace
+npm install -g @oh-my-trace/cli
 omt init
 ```
 
@@ -35,7 +35,7 @@ omt mcp
 `omt mcp` prints installation guidance for the separate MCP package. Install the server with:
 
 ```bash
-npm install -g oh-my-trace-mcp
+npm install -g @oh-my-trace/mcp
 ```
 
 ## Supported Agents

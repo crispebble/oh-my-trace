@@ -1,11 +1,11 @@
-# oh-my-trace-mcp
+# @oh-my-trace/mcp
 
 MCP server for `oh-my-trace`.
 
 Install:
 
 ```bash
-npm install -g oh-my-trace-mcp
+npm install -g @oh-my-trace/mcp
 ```
 
 Run:

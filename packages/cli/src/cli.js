@@ -132,7 +132,7 @@ ${formatAgentsText()}
 
 MCP:
   Install the MCP server separately:
-    npm install -g oh-my-trace-mcp
+    npm install -g @oh-my-trace/mcp
     oh-my-trace-mcp
 `);
 }
@@ -141,7 +141,7 @@ function printMcpInstallHelp() {
   console.log(`oh-my-trace MCP server is distributed separately.
 
 Install:
-  npm install -g oh-my-trace-mcp
+  npm install -g @oh-my-trace/mcp
 
 Run:
   oh-my-trace-mcp
