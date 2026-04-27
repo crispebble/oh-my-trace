@@ -22,6 +22,7 @@ export const claudeAdapter = {
           }
           const rec = row.value;
           const timestamp = toIso(rec.timestamp);
+          if (!timestamp) continue;
           if (!inRange(timestamp, options)) continue;
           sessionId = addSession(acc, {
             source: 'claude',

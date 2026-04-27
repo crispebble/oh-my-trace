@@ -150,6 +150,45 @@ test('query supports desc default, asc order, and timestamp range filters', asyn
     '2026-04-26T00:03:00.000Z',
     '2026-04-26T00:02:00.000Z'
   ]);
+
+  const dateOnlyRange = spawnSync(process.execPath, [
+    bin,
+    'query',
+    '--home',
+    home,
+    '--source',
+    'codex',
+    '--since',
+    '2026-04-26',
+    '--until',
+    '2026-04-26',
+    '--order',
+    'asc',
+    '--limit',
+    '10',
+    '--format',
+    'json'
+  ], { encoding: 'utf8' });
+  assert.equal(dateOnlyRange.status, 0, dateOnlyRange.stderr);
+  const dateOnlyRangeEvents = JSON.parse(dateOnlyRange.stdout);
+  assert.deepEqual(dateOnlyRangeEvents.map((event) => event.timestamp), [
+    '2026-04-26T00:01:00.000Z',
+    '2026-04-26T00:02:00.000Z',
+    '2026-04-26T00:03:00.000Z'
+  ]);
+});
+
+test('claude ingest skips timeline records without timestamps', async () => {
+  const home = await initFixtureHome();
+  const ingest = spawnSync(process.execPath, [bin, 'ingest', '--home', home, '--source', 'claude', '--since', '2026-04-26'], { encoding: 'utf8' });
+  assert.equal(ingest.status, 0, ingest.stderr);
+
+  const query = spawnSync(process.execPath, [bin, 'query', '--home', home, '--source', 'claude', '--limit', '20', '--format', 'json'], { encoding: 'utf8' });
+  assert.equal(query.status, 0, query.stderr);
+  const events = JSON.parse(query.stdout);
+  assert.ok(events.length > 0);
+  assert.equal(events.some((event) => event.timestamp == null), false);
+  assert.equal(events.some((event) => event.eventType === 'last-prompt'), false);
 });
 
 test('status exposes per-agent source collection counts', async () => {

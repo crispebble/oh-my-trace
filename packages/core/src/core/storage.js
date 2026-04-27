@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { homePaths } from './paths.js';
 import { queryJson, runSqlite, sqlQuote } from './sqlite.js';
+import { rangeBoundToIso } from './time.js';
 
 export function eventId(event) {
   return crypto
@@ -167,8 +168,8 @@ export async function queryEvents(homeDir, filters) {
     const sources = filters.source.split(',').map((s) => sqlQuote(s.trim())).join(',');
     where.push(`e.source IN (${sources})`);
   }
-  if (filters.since) where.push(`e.timestamp >= ${sqlQuote(new Date(filters.since).toISOString())}`);
-  if (filters.until) where.push(`e.timestamp <= ${sqlQuote(new Date(filters.until).toISOString())}`);
+  if (filters.since) where.push(`e.timestamp >= ${sqlQuote(rangeBoundToIso(filters.since, 'start'))}`);
+  if (filters.until) where.push(`e.timestamp <= ${sqlQuote(rangeBoundToIso(filters.until, 'end'))}`);
   if (filters.project) where.push(`(s.project_hint LIKE ${sqlQuote(`%${filters.project}%`)} OR s.cwd LIKE ${sqlQuote(`%${filters.project}%`)})`);
   if (filters.sessionId) where.push(`e.session_id = ${sqlQuote(filters.sessionId)}`);
   if (filters.text) where.push(`e.content LIKE ${sqlQuote(`%${filters.text}%`)}`);

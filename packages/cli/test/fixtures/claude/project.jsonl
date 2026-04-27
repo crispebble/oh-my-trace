@@ -1,2 +1,3 @@
 {"type":"user","timestamp":"2026-04-26T01:00:00.000Z","sessionId":"claude-session-1","content":"hello claude"}
+{"type":"last-prompt","sessionId":"claude-session-1","lastPrompt":"metadata without event time"}
 {"type":"assistant","timestamp":"2026-04-26T01:01:00.000Z","sessionId":"claude-session-1","content":"hello back"}
