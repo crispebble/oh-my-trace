@@ -25,6 +25,10 @@ omt export --since 2026-04-26 --format context-pack
 omt agents
 ```
 
+The separate MCP package exposes the same local store to AI clients. It can
+initialize the store, run diagnostics, collect history, query events/sessions,
+and export context packs through MCP tools.
+
 Default home:
 
 ```text

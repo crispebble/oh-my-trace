@@ -1,6 +1,6 @@
 {
   "name": "oh-my-trace-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server package for oh-my-trace.",
   "type": "module",
   "bin": {

@@ -1,17 +1,15 @@
 #!/usr/bin/env node
-import { ensureHome, loadConfig } from '@oh-my-trace/core/core/config.js';
 import { resolveHome } from '@oh-my-trace/core/core/paths.js';
-import { initDb, upsertSources } from '@oh-my-trace/core/core/storage.js';
+import { initializeStore } from '@oh-my-trace/core/operations.js';
 import { runMcpServer } from '../src/server.js';
 
 const homeDir = resolveHome(process.env.OMT_HOME);
+const startupWarnings = [];
 
 try {
-  await ensureHome(homeDir);
-  const config = await loadConfig(homeDir);
-  await initDb(homeDir);
-  await upsertSources(homeDir, config);
-  await runMcpServer({ homeDir, config });
+  const { warnings } = await initializeStore(homeDir, { continueOnStorageError: true });
+  startupWarnings.push(...warnings);
+  await runMcpServer({ homeDir, startupWarnings });
 } catch (error) {
   console.error(error?.stack || error?.message || String(error));
   process.exitCode = 1;

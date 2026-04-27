@@ -211,6 +211,69 @@ test('mcp package bin lists tools over stdio json-rpc', async () => {
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));
   assert.equal(lines[0].result.serverInfo.name, 'oh-my-trace');
+  const searchEvents = lines[1].result.tools.find((tool) => tool.name === 'search_events');
+  assert.ok(searchEvents);
+  assert.ok(searchEvents.inputSchema.properties.since);
+  assert.ok(searchEvents.inputSchema.properties.order);
+  const toolNames = new Set(lines[1].result.tools.map((tool) => tool.name));
+  for (const name of ['initialize_store', 'doctor', 'list_agents', 'collect_history', 'list_sessions']) {
+    assert.ok(toolNames.has(name), `${name} should be listed`);
+  }
+});
+
+test('mcp package can collect history and expose diagnostics over stdio json-rpc', async () => {
+  const home = await initFixtureHome();
+  const input = [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'collect_history', arguments: { source: 'codex', since: '2026-04-26' } } },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'collect_history', arguments: { source: 'codex', since: '2026-04-26' } } },
+    { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'doctor', arguments: {} } },
+    { jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'list_agents', arguments: {} } },
+    { jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'list_sessions', arguments: { source: 'codex' } } }
+  ].map((request) => JSON.stringify(request)).join('\n');
+
+  const child = spawnSync(process.execPath, [mcpBin], {
+    input: `${input}\n`,
+    encoding: 'utf8',
+    env: { ...process.env, OMT_HOME: home }
+  });
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));
+
+  const firstCollect = JSON.parse(lines[1].result.content[0].text);
+  assert.equal(firstCollect.adapters[0], 'codex');
+  assert.ok(firstCollect.eventsSeen > 0);
+  assert.ok(firstCollect.eventsInserted > 0);
+
+  const secondCollect = JSON.parse(lines[2].result.content[0].text);
+  assert.equal(secondCollect.eventsSeen, firstCollect.eventsSeen);
+  assert.equal(secondCollect.eventsInserted, 0);
+
+  const doctor = JSON.parse(lines[3].result.content[0].text);
+  assert.equal(doctor.home, home);
+  assert.ok(doctor.sources.some((source) => source.id === 'codex' && source.roots.some((root) => root.exists)));
+
+  const agents = JSON.parse(lines[4].result.content[0].text);
+  assert.ok(agents.some((agent) => agent.id === 'codex' && agent.status === 'supported'));
+
+  const sessions = JSON.parse(lines[5].result.content[0].text);
+  assert.ok(sessions.some((session) => session.source === 'codex'));
+});
+
+test('mcp package bin still starts when existing db is readonly', async () => {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
+  spawnSync(process.execPath, [bin, 'init', '--home', home], { encoding: 'utf8' });
+  await fs.chmod(path.join(home, 'storage.sqlite'), 0o444);
+  const child = spawnSync(process.execPath, [mcpBin], {
+    input: `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })}\n${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })}\n`,
+    encoding: 'utf8',
+    env: { ...process.env, OMT_HOME: home }
+  });
+  await fs.chmod(path.join(home, 'storage.sqlite'), 0o644);
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.equal(lines[0].result.serverInfo.name, 'oh-my-trace');
+  assert.ok(lines[0].result.startupWarnings.some((warning) => warning.includes('readonly database')));
   assert.ok(lines[1].result.tools.some((tool) => tool.name === 'search_events'));
 });
 

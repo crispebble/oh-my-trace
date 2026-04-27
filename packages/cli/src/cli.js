@@ -1,11 +1,8 @@
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs/promises';
-import { ensureHome, loadConfig } from '@oh-my-trace/core/core/config.js';
-import { homePaths, legacyHomeDir, resolveHome } from '@oh-my-trace/core/core/paths.js';
-import { initDb, listSessions, persistNormalized, queryEvents, startIngestRun, finishIngestRun, status, upsertSources } from '@oh-my-trace/core/core/storage.js';
-import { selectedAdapters } from '@oh-my-trace/core/adapters/index.js';
+import { resolveHome } from '@oh-my-trace/core/core/paths.js';
+import { listSessions, queryEvents, status } from '@oh-my-trace/core/core/storage.js';
 import { formatAgentsText, SUPPORTED_AGENTS, supportedAgentIds } from '@oh-my-trace/core/agents.js';
 import { exportContextPack, renderEvents } from '@oh-my-trace/core/exporters/context-pack.js';
+import { collectHistory, doctorReport, initializeStore } from '@oh-my-trace/core/operations.js';
 
 export async function runCli(argv) {
   const { command, options, rest } = parseArgs(argv);
@@ -31,27 +28,22 @@ export async function runCli(argv) {
   }
 
   if (command === 'init') {
-    const paths = await ensureHome(homeDir);
-    const config = await loadConfig(homeDir);
-    await initDb(homeDir);
-    await upsertSources(homeDir, config);
+    const { paths } = await initializeStore(homeDir);
     console.log(`Initialized oh-my-trace home: ${paths.homeDir}`);
     console.log(`Config: ${paths.configPath}`);
     console.log(`SQLite: ${paths.dbPath}`);
     return;
   }
 
-  const config = await loadConfig(homeDir);
-  await initDb(homeDir);
-  await upsertSources(homeDir, config);
+  await initializeStore(homeDir);
 
   if (command === 'doctor') {
-    await doctor(homeDir, config);
+    console.log(JSON.stringify(await doctorReport(homeDir), null, 2));
     return;
   }
 
   if (command === 'ingest') {
-    await ingest(homeDir, config, options);
+    console.log(JSON.stringify(await collectHistory(homeDir, options), null, 2));
     return;
   }
 
@@ -88,69 +80,6 @@ export async function runCli(argv) {
   }
 
   throw new Error(`Unknown command: ${command}`);
-}
-
-async function doctor(homeDir, config) {
-  const paths = homePaths(homeDir);
-  const sqlite = spawnSync('sqlite3', ['--version'], { encoding: 'utf8' });
-  const legacyHomePath = legacyHomeDir();
-  let legacyHomeExists = false;
-  try {
-    await fs.access(legacyHomePath);
-    legacyHomeExists = true;
-  } catch {
-    legacyHomeExists = false;
-  }
-  const sourceRows = [];
-  for (const [id, source] of Object.entries(config.sources)) {
-    const roots = [];
-    for (const root of source.roots || []) {
-      const expanded = root.replace(/^~(?=\/|$)/, process.env.HOME || '');
-      let exists = false;
-      try {
-        await fs.access(expanded);
-        exists = true;
-      } catch {
-        exists = false;
-      }
-      roots.push({ root, exists });
-    }
-    sourceRows.push({ id, enabled: source.enabled, experimental: Boolean(source.experimental), roots });
-  }
-  console.log(JSON.stringify({
-    home: paths.homeDir,
-    config: paths.configPath,
-    legacyHome: {
-      path: legacyHomePath,
-      exists: legacyHomeExists,
-      note: legacyHomeExists ? 'Legacy home exists; it is not migrated or modified automatically.' : null
-    },
-    sqlite: sqlite.status === 0 ? sqlite.stdout.trim() : 'missing',
-    supportedAgents: SUPPORTED_AGENTS,
-    sources: sourceRows
-  }, null, 2));
-}
-
-async function ingest(homeDir, config, options) {
-  const adapters = selectedAdapters(config, options.source);
-  const runId = await startIngestRun(homeDir, options);
-  const summary = { filesSeen: 0, eventsSeen: 0, eventsInserted: 0, errors: 0 };
-  try {
-    for (const adapter of adapters) {
-      const normalized = await adapter.ingest(config, options);
-      const persisted = await persistNormalized(homeDir, normalized);
-      summary.filesSeen += normalized.filesSeen;
-      summary.eventsSeen += normalized.eventsSeen;
-      summary.eventsInserted += persisted.insertedEvents;
-      summary.errors += normalized.errors;
-    }
-    await finishIngestRun(homeDir, runId, summary);
-    console.log(JSON.stringify({ runId, adapters: adapters.map((adapter) => adapter.id), ...summary }, null, 2));
-  } catch (error) {
-    summary.errors += 1;
-    await finishIngestRun(homeDir, runId, summary);
-    throw error;
-  }
 }
 
 function parseArgs(argv) {
