@@ -26,8 +26,8 @@ export async function initializeStore(homeDir, options = {}) {
   return { paths, config, warnings };
 }
 
-export async function doctorReport(homeDir) {
-  const { config } = await initializeStore(homeDir);
+export async function doctorReport(homeDir, options = {}) {
+  const { config, warnings } = await initializeStore(homeDir, options);
   const paths = homePaths(homeDir);
   const sqlite = spawnSync('sqlite3', ['--version'], { encoding: 'utf8' });
   const legacyHomePath = legacyHomeDir();
@@ -63,6 +63,7 @@ export async function doctorReport(homeDir) {
       note: legacyHomeExists ? 'Legacy home exists; it is not migrated or modified automatically.' : null
     },
     sqlite: sqlite.status === 0 ? sqlite.stdout.trim() : 'missing',
+    storageWarnings: warnings,
     supportedAgents: SUPPORTED_AGENTS,
     sources: sourceRows
   };

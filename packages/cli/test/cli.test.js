@@ -204,12 +204,17 @@ test('mcp package bin lists tools over stdio json-rpc', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
   spawnSync(process.execPath, [bin, 'init', '--home', home], { encoding: 'utf8' });
   const child = spawnSync(process.execPath, [mcpBin], {
-    input: `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })}\n${JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} })}\n`,
+    input: [
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+      { jsonrpc: '2.0', method: 'notifications/initialized', params: {} },
+      { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }
+    ].map((request) => JSON.stringify(request)).join('\n') + '\n',
     encoding: 'utf8',
     env: { ...process.env, OMT_HOME: home }
   });
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.equal(lines.length, 2);
   assert.equal(lines[0].result.serverInfo.name, 'oh-my-trace');
   const searchEvents = lines[1].result.tools.find((tool) => tool.name === 'search_events');
   assert.ok(searchEvents);
@@ -260,7 +265,7 @@ test('mcp package can collect history and expose diagnostics over stdio json-rpc
   assert.ok(sessions.some((session) => session.source === 'codex'));
 });
 
-test('mcp package bin still starts when existing db is readonly', async () => {
+test('mcp package bin lists tools without touching existing db', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
   spawnSync(process.execPath, [bin, 'init', '--home', home], { encoding: 'utf8' });
   await fs.chmod(path.join(home, 'storage.sqlite'), 0o444);
@@ -273,8 +278,41 @@ test('mcp package bin still starts when existing db is readonly', async () => {
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split(/\r?\n/).map((line) => JSON.parse(line));
   assert.equal(lines[0].result.serverInfo.name, 'oh-my-trace');
-  assert.ok(lines[0].result.startupWarnings.some((warning) => warning.includes('readonly database')));
+  assert.deepEqual(lines[0].result.startupWarnings, []);
   assert.ok(lines[1].result.tools.some((tool) => tool.name === 'search_events'));
+});
+
+test('mcp list_agents does not require store initialization', async () => {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
+  await fs.chmod(home, 0o500);
+  const child = spawnSync(process.execPath, [mcpBin], {
+    input: `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'list_agents', arguments: {} } })}\n`,
+    encoding: 'utf8',
+    env: { ...process.env, OMT_HOME: home }
+  });
+  await fs.chmod(home, 0o700);
+  assert.equal(child.status, 0, child.stderr);
+  const response = JSON.parse(child.stdout.trim());
+  const agents = JSON.parse(response.result.content[0].text);
+  assert.ok(agents.some((agent) => agent.id === 'codex' && agent.status === 'supported'));
+});
+
+test('mcp doctor reports storage warnings instead of failing', async () => {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), 'omt-home-'));
+  spawnSync(process.execPath, [bin, 'init', '--home', home], { encoding: 'utf8' });
+  await fs.chmod(path.join(home, 'storage.sqlite'), 0o444);
+  const child = spawnSync(process.execPath, [mcpBin], {
+    input: `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'doctor', arguments: {} } })}\n`,
+    encoding: 'utf8',
+    env: { ...process.env, OMT_HOME: home }
+  });
+  await fs.chmod(path.join(home, 'storage.sqlite'), 0o644);
+  assert.equal(child.status, 0, child.stderr);
+  const response = JSON.parse(child.stdout.trim());
+  const doctor = JSON.parse(response.result.content[0].text);
+  assert.equal(doctor.home, home);
+  assert.ok(doctor.storageWarnings.some((warning) => warning.includes('readonly database')));
+  assert.ok(doctor.sources.some((source) => source.id === 'codex'));
 });
 
 function escapeRegExp(value) {

@@ -26,6 +26,19 @@ Generic MCP client config:
 }
 ```
 
+Codex config example:
+
+```toml
+[mcp_servers.oh-my-trace]
+command = "oh-my-trace-mcp"
+```
+
+Codex derives the exposed tool namespace from the server name, so this server is
+expected to appear as tools such as `mcp__oh_my_trace__doctor` and
+`mcp__oh_my_trace__search_events`. MCP tool discovery can be cached per Codex
+session; after installing or changing this server, start a new Codex session
+before checking whether the tools are visible.
+
 The server uses the same local home as the CLI:
 
 ```text

@@ -127,9 +127,13 @@ export async function runMcpServer({ homeDir, startupWarnings = [] }) {
     try {
       request = JSON.parse(line);
       const result = await handleRequest(homeDir, startupWarnings, request);
-      process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: request.id ?? null, result })}\n`);
+      if (!isNotification(request)) {
+        process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: request.id ?? null, result })}\n`);
+      }
     } catch (error) {
-      process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: request?.id ?? null, error: { code: -32000, message: error.message } })}\n`);
+      if (!request || !isNotification(request)) {
+        process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: request?.id ?? null, error: { code: -32000, message: error.message } })}\n`);
+      }
     }
   }
 }
@@ -148,22 +152,24 @@ async function handleRequest(homeDir, startupWarnings, request) {
   }
   if (request.method === 'tools/call') {
     const { name, arguments: args = {} } = request.params || {};
-    const store = await initializeStore(homeDir);
-    const freshConfig = store.config;
+    if (name === 'list_agents') {
+      return jsonContent(SUPPORTED_AGENTS);
+    }
     if (name === 'initialize_store') {
+      const store = await initializeStore(homeDir, { continueOnStorageError: true });
       return jsonContent({
         home: store.paths.homeDir,
         config: store.paths.configPath,
         sqlite: store.paths.dbPath,
-        warnings: startupWarnings
+        warnings: [...startupWarnings, ...store.warnings]
       });
     }
     if (name === 'doctor') {
-      return jsonContent(await doctorReport(homeDir));
+      const report = await doctorReport(homeDir, { continueOnStorageError: true });
+      return jsonContent({ ...report, startupWarnings });
     }
-    if (name === 'list_agents') {
-      return jsonContent(SUPPORTED_AGENTS);
-    }
+    const store = await initializeStore(homeDir);
+    const freshConfig = store.config;
     if (name === 'list_sources') {
       return jsonContent(freshConfig.sources);
     }
@@ -201,6 +207,10 @@ async function handleRequest(homeDir, startupWarnings, request) {
     return {};
   }
   throw new Error(`Unsupported MCP method: ${request.method}`);
+}
+
+function isNotification(request) {
+  return !Object.prototype.hasOwnProperty.call(request || {}, 'id');
 }
 
 function jsonContent(payload) {
