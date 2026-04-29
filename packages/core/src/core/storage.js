@@ -19,6 +19,51 @@ export function eventId(event) {
     .digest('hex');
 }
 
+const DEFAULT_SQL_BATCH_MAX_CHARS = 8 * 1024 * 1024;
+const DEFAULT_SQL_BATCH_MAX_STATEMENTS = 1000;
+
+function positiveIntEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+function sqlBatchLimits() {
+  return {
+    maxChars: positiveIntEnv('OMT_SQL_BATCH_MAX_CHARS', DEFAULT_SQL_BATCH_MAX_CHARS),
+    maxStatements: positiveIntEnv('OMT_SQL_BATCH_MAX_STATEMENTS', DEFAULT_SQL_BATCH_MAX_STATEMENTS)
+  };
+}
+
+async function runSqliteBatches(dbPath, statements) {
+  if (statements.length === 0) return;
+  const { maxChars, maxStatements } = sqlBatchLimits();
+  let batch = [];
+  let batchChars = 0;
+
+  async function flush() {
+    if (batch.length === 0) return;
+    await runSqlite(dbPath, `BEGIN;\n${batch.join('\n')}\nCOMMIT;\n`);
+    batch = [];
+    batchChars = 0;
+  }
+
+  for (const statement of statements) {
+    const statementChars = statement.length + 1;
+    if (batch.length > 0 && (batch.length >= maxStatements || batchChars + statementChars > maxChars)) {
+      await flush();
+    }
+    batch.push(statement);
+    batchChars += statementChars;
+    if (batch.length >= maxStatements || batchChars >= maxChars) {
+      await flush();
+    }
+  }
+
+  await flush();
+}
+
 export async function initDb(homeDir) {
   const { dbPath } = homePaths(homeDir);
   await runSqlite(dbPath, `
@@ -130,10 +175,11 @@ WHERE id=${sqlQuote(runId)};`);
 export async function persistNormalized(homeDir, normalized) {
   const { dbPath } = homePaths(homeDir);
   const now = new Date().toISOString();
-  const statements = [];
+  const sessionStatements = [];
+  const eventStatements = [];
   let attemptedEvents = 0;
   for (const session of normalized.sessions.values()) {
-    statements.push(`INSERT INTO sessions(id, source, source_session_id, project_hint, cwd, started_at, ended_at, raw_ref, updated_at)
+    sessionStatements.push(`INSERT INTO sessions(id, source, source_session_id, project_hint, cwd, started_at, ended_at, raw_ref, updated_at)
 VALUES (${sqlQuote(session.id)}, ${sqlQuote(session.source)}, ${sqlQuote(session.sourceSessionId)}, ${sqlQuote(session.projectHint)}, ${sqlQuote(session.cwd)}, ${sqlQuote(session.startedAt)}, ${sqlQuote(session.endedAt)}, ${sqlQuote(session.rawRef)}, ${sqlQuote(now)})
 ON CONFLICT(id) DO UPDATE SET
 started_at=COALESCE(excluded.started_at, sessions.started_at),
@@ -144,13 +190,14 @@ updated_at=excluded.updated_at;`);
   }
   for (const event of normalized.events) {
     const id = event.id || eventId(event);
-    statements.push(`INSERT OR IGNORE INTO events(id, session_id, source, source_event_id, timestamp, role, event_type, content, content_redacted, tool_name, cwd, raw_ref, confidence, created_at)
+    eventStatements.push(`INSERT OR IGNORE INTO events(id, session_id, source, source_event_id, timestamp, role, event_type, content, content_redacted, tool_name, cwd, raw_ref, confidence, created_at)
 VALUES (${sqlQuote(id)}, ${sqlQuote(event.sessionId)}, ${sqlQuote(event.source)}, ${sqlQuote(event.sourceEventId)}, ${sqlQuote(event.timestamp)}, ${sqlQuote(event.role)}, ${sqlQuote(event.eventType)}, ${sqlQuote(event.content)}, ${sqlQuote(Boolean(event.contentRedacted))}, ${sqlQuote(event.toolName)}, ${sqlQuote(event.cwd)}, ${sqlQuote(event.rawRef)}, ${sqlQuote(event.confidence || 'high')}, ${sqlQuote(now)});`);
     attemptedEvents += 1;
   }
-  if (statements.length === 0) return { attemptedEvents: 0, insertedEvents: 0 };
+  if (sessionStatements.length === 0 && eventStatements.length === 0) return { attemptedEvents: 0, insertedEvents: 0 };
   const before = await countEvents(homeDir);
-  await runSqlite(dbPath, `BEGIN;\n${statements.join('\n')}\nCOMMIT;\n`);
+  await runSqliteBatches(dbPath, sessionStatements);
+  await runSqliteBatches(dbPath, eventStatements);
   const after = await countEvents(homeDir);
   return { attemptedEvents, insertedEvents: Math.max(0, after - before) };
 }

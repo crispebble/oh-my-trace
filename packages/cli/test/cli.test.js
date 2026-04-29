@@ -105,6 +105,35 @@ test('mcp command prints separate package installation guidance', async () => {
   assert.match(result.stdout, /"command": "oh-my-trace-mcp"/);
 });
 
+test('ingest batches large SQL writes without duplicate events', async () => {
+  const home = await initFixtureHome();
+  const env = {
+    ...process.env,
+    OMT_SQL_BATCH_MAX_CHARS: '700',
+    OMT_SQL_BATCH_MAX_STATEMENTS: '2'
+  };
+
+  const first = spawnSync(process.execPath, [bin, 'ingest', '--home', home, '--source', 'codex', '--since', '2026-04-26'], {
+    encoding: 'utf8',
+    env
+  });
+  assert.equal(first.status, 0, first.stderr);
+  const firstPayload = JSON.parse(first.stdout);
+  assert.ok(firstPayload.eventsInserted > 0);
+
+  const second = spawnSync(process.execPath, [bin, 'ingest', '--home', home, '--source', 'codex', '--since', '2026-04-26'], {
+    encoding: 'utf8',
+    env
+  });
+  assert.equal(second.status, 0, second.stderr);
+  const secondPayload = JSON.parse(second.stdout);
+  assert.equal(secondPayload.eventsInserted, 0);
+
+  const query = spawnSync(process.execPath, [bin, 'query', '--home', home, '--source', 'codex', '--format', 'json'], { encoding: 'utf8' });
+  assert.equal(query.status, 0, query.stderr);
+  assert.ok(JSON.parse(query.stdout).length > 0);
+});
+
 test('query supports desc default, asc order, and timestamp range filters', async () => {
   const home = await initFixtureHome();
   const ingest = spawnSync(process.execPath, [bin, 'ingest', '--home', home, '--source', 'codex', '--since', '2026-04-26'], { encoding: 'utf8' });
